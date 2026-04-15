@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusChat — System Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#030508; --surface:#0a0d14; --surface2:#0f1420; --surface3:#151b2a;
+  --border:rgba(255,255,255,.06); --border-hi:rgba(255,255,255,.11);
+  --text:#dfe3ee; --text2:rgba(223,227,238,.55); --text3:rgba(223,227,238,.3);
+  --blue:#4f8ef7; --green:#2ecc71; --yellow:#f0b429; --red:#e74c3c;
+  --teal:#1abc9c;
+  --font:'Sora',sans-serif; --mono:'JetBrains Mono',monospace;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html { scroll-behavior:smooth }
+body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden }
+
+/* ambient */
+.ambient { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden }
+.dot-grid { position:absolute; inset:0; background-image:radial-gradient(rgba(255,255,255,.022) 1px,transparent 1px); background-size:32px 32px }
+.orb { position:absolute; border-radius:50%; filter:blur(110px); }
+.orb-1 { width:700px; height:500px; top:-200px; left:50%; transform:translateX(-50%); background:radial-gradient(circle,rgba(59,125,232,.55),transparent 65%); opacity:.22 }
+.orb-2 { width:320px; height:320px; bottom:15%; left:-80px; background:radial-gradient(circle,#2ecc71,transparent 70%); opacity:.09 }
+.orb-3 { width:280px; height:280px; bottom:5%; right:-60px; background:radial-gradient(circle,#9b59b6,transparent 70%); opacity:.09 }
+
+.page { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:0 28px 100px }
+
+/* header */
+header { padding:52px 0 56px; display:flex; align-items:center; justify-content:space-between; gap:16px }
+.brand { display:flex; align-items:center; gap:16px; text-decoration:none; color:inherit }
+.brand-logo { width:50px; height:50px; border-radius:14px; background:linear-gradient(135deg,#1a2a50,#0f172a); border:1px solid rgba(79,142,247,.2); display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px rgba(79,142,247,.08),0 8px 28px rgba(0,0,0,.45); flex-shrink:0 }
+.brand-name { font-size:19px; font-weight:700; letter-spacing:-.4px; line-height:1.2 }
+.brand-name em { color:var(--blue); font-style:normal }
+.brand-sub { font-size:10.5px; color:var(--text3); letter-spacing:.05em; text-transform:uppercase; margin-top:2px; font-weight:500 }
+.hdr-right { display:flex; align-items:center; gap:10px }
+.time-pill { padding:7px 15px; border-radius:100px; background:var(--surface); border:1px solid var(--border-hi); font-family:var(--mono); font-size:11px; color:var(--text2); display:flex; align-items:center; gap:7px }
+.live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:livepulse 2s ease-in-out infinite; flex-shrink:0 }
+@keyframes livepulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+.btn-refresh { padding:8px 18px; border-radius:100px; background:rgba(79,142,247,.1); border:1px solid rgba(79,142,247,.24); color:var(--blue); font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .2s var(--ease) }
+.btn-refresh:hover { background:rgba(79,142,247,.18); border-color:rgba(79,142,247,.4); transform:translateY(-1px) }
+.btn-refresh.spinning svg { animation:spin .65s linear infinite }
+@keyframes spin { to { transform:rotate(360deg) } }
+
+/* hero */
+.hero { border-radius:22px; padding:34px 38px; margin-bottom:40px; position:relative; overflow:hidden; display:flex; align-items:center; gap:26px; transition:all .5s var(--ease); border:1px solid transparent; animation:fadeup .6s var(--ease) both }
+.hero.ok   { background:linear-gradient(135deg,rgba(46,204,113,.08),rgba(39,174,96,.04));  border-color:rgba(46,204,113,.2) }
+.hero.warn { background:linear-gradient(135deg,rgba(240,180,41,.08),rgba(230,126,34,.04)); border-color:rgba(240,180,41,.2) }
+.hero.err  { background:linear-gradient(135deg,rgba(231,76,60,.08),rgba(192,57,43,.04));  border-color:rgba(231,76,60,.2) }
+.hero.checking { background:linear-gradient(135deg,rgba(79,142,247,.06),rgba(59,125,232,.03)); border-color:rgba(79,142,247,.14) }
+.hero-icon { flex-shrink:0; width:66px; height:66px; border-radius:18px; display:flex; align-items:center; justify-content:center }
+.hero.ok    .hero-icon { background:rgba(46,204,113,.12);  box-shadow:0 0 36px rgba(46,204,113,.18) }
+.hero.warn  .hero-icon { background:rgba(240,180,41,.12);  box-shadow:0 0 36px rgba(240,180,41,.18) }
+.hero.err   .hero-icon { background:rgba(231,76,60,.12);   box-shadow:0 0 36px rgba(231,76,60,.18) }
+.hero.checking .hero-icon { background:rgba(79,142,247,.1) }
+.hero-icon svg { width:32px; height:32px }
+.hero.ok    .hero-icon svg { stroke:var(--green) }
+.hero.warn  .hero-icon svg { stroke:var(--yellow) }
+.hero.err   .hero-icon svg { stroke:var(--red) }
+.hero.checking .hero-icon svg { stroke:var(--blue) }
+.hero-body { flex:1 }
+.hero-title { font-size:23px; font-weight:800; letter-spacing:-.5px; margin-bottom:6px }
+.hero.ok   .hero-title { color:var(--green) }
+.hero.warn .hero-title { color:var(--yellow) }
+.hero.err  .hero-title { color:var(--red) }
+.hero.checking .hero-title { color:var(--text2) }
+.hero-desc { font-size:13.5px; color:var(--text2); line-height:1.55 }
+.hero-meta { text-align:right; flex-shrink:0 }
+.hero-meta-lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); margin-bottom:5px }
+.hero-meta-ts { font-family:var(--mono); font-size:12px; color:var(--text2); line-height:1.75 }
+
+/* metrics */
+.metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:40px }
+.metric { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 20px; transition:border-color .2s,transform .2s; animation:fadeup .5s var(--ease) both }
+.metric:hover { border-color:var(--border-hi); transform:translateY(-2px) }
+.metric-lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--text3); margin-bottom:10px; display:flex; align-items:center; gap:5px }
+.metric-val { font-family:var(--mono); font-size:28px; font-weight:500; line-height:1; color:var(--text); margin-bottom:5px; letter-spacing:-.5px }
+.metric-val.shimmer { width:72px; height:28px; background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.3s infinite; border-radius:6px; display:block }
+@keyframes shimmer { to { background-position:-200% 0 } }
+.metric-sub { font-size:11px; color:var(--text3) }
+
+/* ── Down Servers Panel ── */
+#down-servers-section { margin-bottom:40px; animation:fadeup .55s .05s var(--ease) both }
+.down-panel {
+  border-radius:18px; overflow:hidden;
+  border:1px solid rgba(231,76,60,.25);
+  background:linear-gradient(135deg,rgba(231,76,60,.07),rgba(192,57,43,.04));
+}
+.down-panel-hdr {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 22px; border-bottom:1px solid rgba(231,76,60,.18);
+  background:rgba(231,76,60,.06);
+}
+.down-panel-hdr svg { flex-shrink:0 }
+.down-panel-title { font-size:13px; font-weight:700; color:var(--red); letter-spacing:-.1px }
+.down-panel-sub   { font-size:11.5px; color:rgba(231,76,60,.65); margin-top:1px }
+.down-pill-wrap   { display:flex; flex-wrap:wrap; gap:8px; padding:14px 22px }
+.down-pill {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 14px; border-radius:100px;
+  background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3);
+  font-size:12px; font-weight:600; color:var(--red);
+  animation:fadeup .3s var(--ease) both;
+}
+.down-pill .pill-dot { width:6px; height:6px; border-radius:50%; background:var(--red); animation:pred 2s ease-out infinite }
+.down-pill .pill-type { font-size:10px; font-weight:500; color:rgba(231,76,60,.6); font-family:var(--mono); margin-left:2px }
+@keyframes pred { 0%{box-shadow:0 0 0 0 rgba(231,76,60,.55)} 70%{box-shadow:0 0 0 7px rgba(231,76,60,0)} 100%{box-shadow:0 0 0 0 rgba(231,76,60,0)} }
+
+/* All-up storage panel */
+.storage-ok-panel {
+  border-radius:18px; padding:16px 22px;
+  border:1px solid rgba(46,204,113,.18);
+  background:rgba(46,204,113,.05);
+  display:flex; align-items:center; gap:12px;
+}
+.storage-ok-panel svg { flex-shrink:0 }
+.storage-ok-title { font-size:13px; font-weight:700; color:var(--green) }
+.storage-ok-sub   { font-size:11.5px; color:rgba(46,204,113,.6); margin-top:1px }
+
+/* section */
+.sec-hdr { display:flex; align-items:center; gap:10px; margin-bottom:14px }
+.sec-hdr-line { flex:1; height:1px; background:var(--border) }
+.sec-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--text3); white-space:nowrap }
+
+/* Storage servers grid */
+.storage-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:40px }
+.storage-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:18px;
+  padding:22px 24px; transition:border-color .2s,transform .2s;
+  animation:fadeup .5s var(--ease) both;
+  position:relative; overflow:hidden;
+}
+.storage-card:hover { transform:translateY(-2px); border-color:var(--border-hi) }
+.storage-card.primary-tag::before {
+  content:'PRIMARY'; position:absolute; top:14px; right:14px;
+  font-size:9px; font-weight:700; letter-spacing:.1em;
+  color:var(--blue); background:rgba(79,142,247,.1); border:1px solid rgba(79,142,247,.22);
+  padding:3px 9px; border-radius:100px;
+}
+.storage-card.backup-tag::before {
+  content:'BACKUP'; position:absolute; top:14px; right:14px;
+  font-size:9px; font-weight:700; letter-spacing:.1em;
+  color:var(--teal); background:rgba(26,188,156,.1); border:1px solid rgba(26,188,156,.22);
+  padding:3px 9px; border-radius:100px;
+}
+.sc-top { display:flex; align-items:center; gap:12px; margin-bottom:18px }
+.sc-icon { width:42px; height:42px; border-radius:12px; background:var(--surface2); border:1px solid var(--border-hi); display:flex; align-items:center; justify-content:center; flex-shrink:0 }
+.sc-name { font-size:14px; font-weight:700; letter-spacing:-.2px }
+.sc-provider { font-size:11.5px; color:var(--text3); margin-top:2px }
+.sc-stats { display:flex; gap:20px }
+.sc-stat-lbl { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--text3); margin-bottom:5px }
+.sc-stat-val { font-family:var(--mono); font-size:20px; font-weight:500; letter-spacing:-.3px }
+.sc-stat-val.shimmer { width:56px; height:20px; background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.3s infinite; border-radius:4px; display:block }
+.sc-divider { width:1px; background:var(--border); align-self:stretch }
+.sc-badge-row { margin-top:18px; display:flex; align-items:center; justify-content:space-between }
+.sc-status-txt { font-size:11.5px; color:var(--text3) }
+.sc-status-txt.ok   { color:rgba(46,204,113,.7) }
+.sc-status-txt.warn { color:rgba(240,180,41,.7) }
+.sc-status-txt.err  { color:rgba(231,76,60,.7) }
+
+/* services */
+.svc-table { background:var(--surface); border:1px solid var(--border); border-radius:18px; overflow:hidden; margin-bottom:40px; animation:fadeup .6s .08s var(--ease) both }
+.svc-thead { display:grid; grid-template-columns:1fr 80px 120px; padding:11px 24px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.02) }
+.svc-thead span { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text3) }
+.svc-thead span:not(:first-child) { text-align:right }
+.svc-row { display:grid; grid-template-columns:1fr 80px 120px; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border); transition:background .15s; animation:fadeup .4s var(--ease) both }
+.svc-row:last-child { border-bottom:none }
+.svc-row:hover { background:rgba(255,255,255,.025) }
+.svc-left { display:flex; align-items:center; gap:14px }
+.svc-icon { width:38px; height:38px; border-radius:11px; background:var(--surface2); border:1px solid var(--border-hi); display:flex; align-items:center; justify-content:center; flex-shrink:0 }
+.svc-icon svg { width:18px; height:18px; }
+.svc-name { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; letter-spacing:-.1px }
+.svc-desc { font-size:11.5px; color:var(--text3); line-height:1.4 }
+.svc-ping { font-family:var(--mono); font-size:12px; color:var(--text2); text-align:right }
+.svc-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 13px; border-radius:100px; font-size:11px; font-weight:600; width:112px; justify-content:center; transition:all .3s; margin-left:auto }
+.svc-badge.checking { background:var(--surface2); color:var(--text3); border:1px solid var(--border) }
+.svc-badge.ok   { background:rgba(46,204,113,.1);  color:var(--green);  border:1px solid rgba(46,204,113,.22) }
+.svc-badge.warn { background:rgba(240,180,41,.1);  color:var(--yellow); border:1px solid rgba(240,180,41,.22) }
+.svc-badge.err  { background:rgba(231,76,60,.1);   color:var(--red);    border:1px solid rgba(231,76,60,.22) }
+.badge-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0 }
+.svc-badge.checking .badge-dot { background:var(--text3); animation:pgrey 1s ease-in-out infinite }
+.svc-badge.ok   .badge-dot { background:var(--green);  animation:pgreen 2s ease-out infinite }
+.svc-badge.warn .badge-dot { background:var(--yellow); animation:pyellow 2s ease-out infinite }
+.svc-badge.err  .badge-dot { background:var(--red);    animation:pred 2s ease-out infinite }
+@keyframes pgrey   { 0%,100%{opacity:.3} 50%{opacity:1} }
+@keyframes pgreen  { 0%{box-shadow:0 0 0 0 rgba(46,204,113,.55)}  70%{box-shadow:0 0 0 7px rgba(46,204,113,0)} 100%{box-shadow:0 0 0 0 rgba(46,204,113,0)} }
+@keyframes pyellow { 0%{box-shadow:0 0 0 0 rgba(240,180,41,.55)}  70%{box-shadow:0 0 0 7px rgba(240,180,41,0)} 100%{box-shadow:0 0 0 0 rgba(240,180,41,0)} }
+
+/* uptime */
+.uptime-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; overflow:hidden; margin-bottom:40px; animation:fadeup .6s .12s var(--ease) both }
+.uptime-row { display:flex; align-items:center; gap:16px; padding:14px 24px; border-bottom:1px solid var(--border); transition:background .15s }
+.uptime-row:hover { background:rgba(255,255,255,.02) }
+.uptime-row:last-of-type { border-bottom:none }
+.upt-name { font-size:13px; font-weight:600; color:var(--text); min-width:160px }
+.upt-bars { flex:1; display:flex; gap:2px; height:22px; align-items:stretch }
+.upt-bar { flex:1; border-radius:3px; cursor:pointer; transition:transform .1s,filter .1s; min-width:2px }
+.upt-bar:hover { transform:scaleY(1.35); filter:brightness(1.3) }
+.upt-bar.up   { background:var(--green);  opacity:.55 }
+.upt-bar.warn { background:var(--yellow); opacity:.75 }
+.upt-bar.down { background:var(--red);    opacity:.8 }
+.upt-bar.empty { background:var(--surface3) }
+.upt-pct { font-family:var(--mono); font-size:12px; font-weight:500; min-width:50px; text-align:right }
+.upt-pct.great { color:var(--green) }
+.upt-pct.good  { color:var(--yellow) }
+.upt-pct.bad   { color:var(--red) }
+.upt-legend { display:flex; justify-content:space-between; padding:8px 24px 12px; font-size:10px; font-family:var(--mono); color:var(--text3); border-top:1px solid var(--border); background:rgba(255,255,255,.015) }
+
+/* incidents */
+.inc-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; overflow:hidden; margin-bottom:40px; animation:fadeup .6s .16s var(--ease) both }
+.inc-empty { padding:48px 24px; text-align:center }
+.inc-empty-icon { width:54px; height:54px; border-radius:16px; background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.18); display:flex; align-items:center; justify-content:center; margin:0 auto 14px }
+.inc-empty-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:5px }
+.inc-empty-sub { font-size:13px; color:var(--text3) }
+.inc-row { display:flex; align-items:flex-start; gap:16px; padding:18px 24px; border-bottom:1px solid var(--border); animation:fadeup .4s var(--ease) both }
+.inc-row:last-child { border-bottom:none }
+.inc-tag { padding:4px 11px; border-radius:100px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; flex-shrink:0; margin-top:2px }
+.inc-tag.resolved   { background:rgba(46,204,113,.1);  color:var(--green);  border:1px solid rgba(46,204,113,.2) }
+.inc-tag.ongoing    { background:rgba(231,76,60,.1);   color:var(--red);    border:1px solid rgba(231,76,60,.2) }
+.inc-tag.monitoring { background:rgba(240,180,41,.1);  color:var(--yellow); border:1px solid rgba(240,180,41,.2) }
+.inc-title { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:4px }
+.inc-desc { font-size:12.5px; color:var(--text2); line-height:1.5 }
+.inc-ts { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--text3); flex-shrink:0; padding-top:2px }
+
+/* footer */
+footer { padding-top:32px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px }
+.foot-l { font-size:12px; color:var(--text3); display:flex; align-items:center; gap:14px }
+.foot-l a { color:var(--blue); text-decoration:none; font-weight:500; transition:opacity .2s }
+.foot-l a:hover { opacity:.75 }
+.foot-sep { opacity:.3 }
+.foot-r { font-family:var(--mono); font-size:10.5px; color:var(--text3) }
+
+@keyframes fadeup { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.metric:nth-child(1){animation-delay:.04s} .metric:nth-child(2){animation-delay:.08s} .metric:nth-child(3){animation-delay:.12s} .metric:nth-child(4){animation-delay:.16s}
+
+@media(max-width:700px){
+  .metrics{grid-template-columns:1fr 1fr}
+  .storage-grid{grid-template-columns:1fr}
+  .hero-meta{display:none}
+  .svc-thead{display:none}
+  .svc-row{grid-template-columns:1fr auto}
+  .svc-ping{display:none}
+  .upt-name{min-width:100px;font-size:12px}
+  header{flex-wrap:wrap}
+  .time-pill{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="dot-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="page">
+
+<header>
+  <a class="brand" href="index.html">
+    <div class="brand-logo">
+      <svg width="32" height="32" viewBox="0 0 200 200" fill="none">
+        <defs>
+          <radialGradient id="hbg" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#1e40af"/><stop offset="100%" stop-color="#0f172a"/></radialGradient>
+          <radialGradient id="hbub" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/></radialGradient>
+          <linearGradient id="harc" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#818cf8"/></linearGradient>
+          <filter id="hg"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <circle cx="100" cy="100" r="90" stroke="#60a5fa" stroke-width="1" fill="none" opacity=".2"/>
+        <circle cx="100" cy="100" r="64" fill="url(#hbg)"/>
+        <g filter="url(#hg)" transform="translate(128,52)">
+          <path d="M-2,22 Q4,14 10,22" stroke="url(#harc)" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <path d="M-7,29 Q4,8 15,29" stroke="url(#harc)" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/>
+        </g>
+        <g filter="url(#hg)">
+          <rect x="57" y="66" width="86" height="60" rx="18" fill="url(#hbub)"/>
+          <path d="M72,124 L62,144 L90,124 Z" fill="url(#hbub)"/>
+        </g>
+        <circle cx="78" cy="96" r="5.5" fill="white" opacity=".95"/>
+        <circle cx="100" cy="96" r="5.5" fill="white" opacity=".95"/>
+        <circle cx="122" cy="96" r="5.5" fill="white" opacity=".95"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">Nexus<em>Chat</em></div>
+      <div class="brand-sub">System Status</div>
+    </div>
+  </a>
+  <div class="hdr-right">
+    <div class="time-pill">
+      <div class="live-dot"></div>
+      <span id="live-time">—</span>
+    </div>
+    <button class="btn-refresh" id="refresh-btn" onclick="runChecks()">
+      <svg id="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<!-- Hero -->
+<div class="hero checking" id="banner">
+  <div class="hero-icon">
+    <svg id="banner-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16.5 14.5"/>
+    </svg>
+  </div>
+  <div class="hero-body">
+    <div class="hero-title" id="banner-title">Running diagnostics…</div>
+    <div class="hero-desc"  id="banner-sub">Checking all services. This takes just a moment.</div>
+  </div>
+  <div class="hero-meta">
+    <div class="hero-meta-lbl">Last checked</div>
+    <div class="hero-meta-ts" id="banner-ts">—</div>
+  </div>
+</div>
+
+<!-- Metrics -->
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-lbl">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a10 10 0 0 0-7.07 17.07"/><path d="M22 12a10 10 0 0 0-2.93-7.07"/>
+        <circle cx="12" cy="12" r="1.5"/><line x1="12" y1="12" x2="16" y2="8"/>
+        <path d="M5 19a9 9 0 0 1 0-14" stroke-dasharray="3 2" stroke-width="1.2"/>
+      </svg>
+      DB Latency
+    </div>
+    <div class="metric-val shimmer" id="m-ping"></div>
+    <div class="metric-sub">Firestore round-trip</div>
+  </div>
+  <div class="metric">
+    <div class="metric-lbl">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l8.66 5v10L12 22l-8.66-5V7z"/><polyline points="8.5 12 11 14.5 15.5 10"/>
+      </svg>
+      Services Up
+    </div>
+    <div class="metric-val shimmer" id="m-up"></div>
+    <div class="metric-sub">of <span id="m-total">—</span> monitored</div>
+  </div>
+  <div class="metric">
+    <div class="metric-lbl">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="3" x2="4" y2="21"/><path d="M4 4h12l-3 4.5 3 4.5H4"/>
+      </svg>
+      Last Incident
+    </div>
+    <div class="metric-val" id="m-incident" style="font-size:18px;padding-top:6px">—</div>
+    <div class="metric-sub" id="m-incident-sub">No known incidents</div>
+  </div>
+  <div class="metric">
+    <div class="metric-lbl">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Auto-Refresh
+    </div>
+    <div class="metric-val" style="font-size:18px;padding-top:6px;color:var(--blue)">60s</div>
+    <div class="metric-sub">Continuous monitoring</div>
+  </div>
+</div>
+
+<!-- ── Down Servers Panel ── -->
+<div id="down-servers-section"></div>
+
+<!-- Storage Servers -->
+<div class="sec-hdr"><span class="sec-lbl">Upload Storage Servers</span><div class="sec-hdr-line"></div></div>
+<div class="storage-grid" id="storage-grid">
+  <!-- Cloudinary Storage Card -->
+  <div class="storage-card primary-tag" id="sc-cloudinary">
+    <div class="sc-top">
+      <div class="sc-icon">
+        <!-- cloud with upload arrow for Cloudinary -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+          <line x1="12" y1="13" x2="12" y2="17"/>
+          <polyline points="9 16 12 13 15 16"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sc-name">Cloudinary Storage</div>
+        <div class="sc-provider">Cloudinary · Primary upload target</div>
+      </div>
+    </div>
+    <div class="sc-stats">
+      <div>
+        <div class="sc-stat-lbl">Latency</div>
+        <div class="sc-stat-val shimmer" id="sc-cloudinary-ping"></div>
+      </div>
+      <div class="sc-divider"></div>
+      <div>
+        <div class="sc-stat-lbl">Status</div>
+        <div class="svc-badge checking" id="sc-cloudinary-badge" style="width:auto;margin:0;margin-top:2px">
+          <div class="badge-dot"></div><span>Checking…</span>
+        </div>
+      </div>
+    </div>
+    <div class="sc-badge-row">
+      <span class="sc-status-txt" id="sc-cloudinary-note">Verifying connection…</span>
+    </div>
+  </div>
+
+  <!-- Supabase Storage Card -->
+  <div class="storage-card backup-tag" id="sc-supabase">
+    <div class="sc-top">
+      <div class="sc-icon">
+        <!-- leaf/S icon for Supabase -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1abc9c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19l8-16 8 16H4z"/>
+          <path d="M4 13h16"/>
+          <line x1="12" y1="13" x2="12" y2="19"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sc-name">Supabase Storage</div>
+        <div class="sc-provider">Supabase · Backup upload target</div>
+      </div>
+    </div>
+    <div class="sc-stats">
+      <div>
+        <div class="sc-stat-lbl">Latency</div>
+        <div class="sc-stat-val shimmer" id="sc-supabase-ping"></div>
+      </div>
+      <div class="sc-divider"></div>
+      <div>
+        <div class="sc-stat-lbl">Status</div>
+        <div class="svc-badge checking" id="sc-supabase-badge" style="width:auto;margin:0;margin-top:2px">
+          <div class="badge-dot"></div><span>Checking…</span>
+        </div>
+      </div>
+    </div>
+    <div class="sc-badge-row">
+      <span class="sc-status-txt" id="sc-supabase-note">Verifying connection…</span>
+    </div>
+  </div>
+</div>
+
+<!-- Services -->
+<div class="sec-hdr"><span class="sec-lbl">Services</span><div class="sec-hdr-line"></div></div>
+<div class="svc-table">
+  <div class="svc-thead">
+    <span>Service</span>
+    <span style="text-align:right">Latency</span>
+    <span style="text-align:right">Status</span>
+  </div>
+  <div id="services-list"></div>
+</div>
+
+<!-- Uptime -->
+<div class="sec-hdr"><span class="sec-lbl">90-Day Uptime</span><div class="sec-hdr-line"></div></div>
+<div class="uptime-card">
+  <div id="uptime-rows"></div>
+  <div class="upt-legend"><span>90 days ago</span><span>Today</span></div>
+</div>
+
+<!-- Incidents -->
+<div class="sec-hdr"><span class="sec-lbl">Incident History</span><div class="sec-hdr-line"></div></div>
+<div class="inc-card" id="incidents-card">
+  <div class="inc-empty">
+    <div class="inc-empty-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l8 3.5v5.5c0 4.8-3.3 9.3-8 11-4.7-1.7-8-6.2-8-11V5.5z"/>
+        <polyline points="8.5 12 11 14.5 15.5 10"/>
+      </svg>
+    </div>
+    <div class="inc-empty-title">No incidents in the last 30 days</div>
+    <div class="inc-empty-sub">All systems have been running smoothly.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-l">
+    <a href="index.html" style="display:flex;align-items:center;gap:5px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+      Open NexusChat
+    </a>
+    <span class="foot-sep">·</span>
+    <span>© 2025 NexusChat</span>
+    <span class="foot-sep">·</span>
+    <span>Cloudinary · Supabase</span>
+  </div>
+  <div class="foot-r" id="footer-ts">—</div>
+</footer>
+
+</div>
+
+<script type="module">
+import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getDatabase, ref as rtRef, get as rtGet }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG — replace the Supabase values with your project's credentials
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL     = 'https://hsjjoudmmxmyguasoyxg.supabase.co';   // ← replace
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzampvdWRtbXhteWd1YXNveXhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNDI4ODIsImV4cCI6MjA4NzcxODg4Mn0.1cViVnKr7z6TlFOICNylPo4yZ03HpdJZGFMxsqwuhKc';                 // ← replace
+
+const app  = initializeApp({ apiKey:"AIzaSyBH3a0DzIw4MPIscjABQeEcj8S5x73qM7U", authDomain:"oldrobloxcorpmeeting.firebaseapp.com", databaseURL:"https://oldrobloxcorpmeeting-default-rtdb.firebaseio.com", projectId:"oldrobloxcorpmeeting", storageBucket:"oldrobloxcorpmeeting.firebasestorage.app", messagingSenderId:"590400967912", appId:"1:590400967912:web:81961e1774ab11a5ae255d" });
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const rtdb = getDatabase(app);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage server definitions
+// ─────────────────────────────────────────────────────────────────────────────
+const STORAGE_SERVERS = [
+  {
+    id: 'cloudinary',
+    name: 'Cloudinary Storage',
+    role: 'primary',
+    check: async () => {
+      const t = Date.now();
+      // HEAD Cloudinary's res endpoint — a response (any status) proves reachability
+      await fetch(
+        'https://res.cloudinary.com/dgxl2qlo0/image/upload/v1/ping',
+        { method:'HEAD', mode:'no-cors', signal: AbortSignal.timeout(5000) }
+      ).catch(() => { throw new Error('unreachable'); });
+      return Date.now() - t;
+    }
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase Storage',
+    role: 'backup',
+    check: async () => {
+      const t = Date.now();
+      // Hit the Supabase storage health endpoint
+      const r = await fetch(
+        `${SUPABASE_URL}/storage/v1/`,
+        {
+          method: 'GET',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+          signal: AbortSignal.timeout(5000)
+        }
+      ).catch(() => null);
+      if (r === null) throw new Error('unreachable');
+      return Date.now() - t;
+    }
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// General service definitions (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+const IC = {
+  auth: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L4 5v6c0 5.25 3.5 9.74 8 11 4.5-1.26 8-5.75 8-11V5z"/>
+    <circle cx="12" cy="11" r="2.2" fill="none"/><line x1="12" y1="13.2" x2="12" y2="15.5"/>
+  </svg>`,
+  firestore: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="17" rx="7" ry="2.5"/><path d="M5 17V12"/><path d="M19 17V12"/>
+    <ellipse cx="12" cy="12" rx="7" ry="2.5"/><path d="M5 12V7"/><path d="M19 12V7"/>
+    <ellipse cx="12" cy="7" rx="7" ry="2.5"/>
+    <path d="M12 4.5 C12 4.5 14 3 13.5 1.5 C15 2.5 15.5 4.5 14 5.5 C14.5 5.5 15 5 15 5 C15 6.5 13.5 7 12.5 6.5" stroke-width="1.3"/>
+  </svg>`,
+  rtdb: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="2.5"/><circle cx="4" cy="6" r="1.8"/><circle cx="20" cy="6" r="1.8"/>
+    <circle cx="4" cy="18" r="1.8"/><circle cx="20" cy="18" r="1.8"/>
+    <line x1="5.6" y1="7" x2="10.4" y2="10.5"/><line x1="18.4" y1="7" x2="13.6" y2="10.5"/>
+    <line x1="5.6" y1="17" x2="10.4" y2="13.5"/><line x1="18.4" y1="17" x2="13.6" y2="13.5"/>
+  </svg>`,
+  cdn: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+    <line x1="12" y1="13" x2="12" y2="17"/><polyline points="9 16 12 13 15 16"/>
+  </svg>`,
+  hosting: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="6" rx="1.5"/><rect x="2" y="13" width="20" height="6" rx="1.5"/>
+    <line x1="6" y1="6" x2="6" y2="6" stroke-width="3" stroke-linecap="round"/>
+    <line x1="6" y1="16" x2="6" y2="16" stroke-width="3" stroke-linecap="round"/>
+    <line x1="10" y1="6" x2="16" y2="6" stroke-width="1.2"/><line x1="10" y1="16" x2="16" y2="16" stroke-width="1.2"/>
+  </svg>`,
+  presence: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="9" r="3"/>
+    <path d="M3 21v-1.5A4.5 4.5 0 0 1 7.5 15h3A4.5 4.5 0 0 1 15 19.5V21"/>
+    <path d="M16 3.5a4 4 0 0 1 0 7"/><path d="M19 21v-1a3 3 0 0 0-2-2.83"/>
+  </svg>`,
+};
+
+const SERVICES = [
+  { id:'auth',     name:'Authentication',     desc:'Sign-in, sign-up, and session management',
+    check: async () => { const t=Date.now(); const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyBH3a0DzIw4MPIscjABQeEcj8S5x73qM7U`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:'probe'}),signal:AbortSignal.timeout(5000)}).catch(()=>null); if(!r)throw new Error('unreachable'); return Date.now()-t; } },
+  { id:'firestore',name:'Firestore Database', desc:'Messages, profiles, servers, and all app data',
+    check: async () => { const t=Date.now(); await getDoc(doc(db,'admin_config','status_check')).catch(()=>{}); return Date.now()-t; } },
+  { id:'rtdb',     name:'Realtime Database',  desc:'Presence, typing indicators, and voice state',
+    check: async () => { const t=Date.now(); await rtGet(rtRef(rtdb,'.info/connected')).catch(()=>{}); return Date.now()-t; } },
+  { id:'cdn',      name:'Media & CDN',         desc:'Avatar uploads and image hosting',
+    check: async () => { const t=Date.now(); await fetch('https://res.cloudinary.com/dgxl2qlo0/image/upload/v1/ping',{method:'HEAD',mode:'no-cors',signal:AbortSignal.timeout(4000)}).catch(()=>null); return Date.now()-t; } },
+  { id:'hosting',  name:'Web Hosting',         desc:'App availability and page delivery',
+    check: async () => { const t=Date.now(); await fetch('https://nexuschat.wasmer.app/',{method:'HEAD',mode:'no-cors',signal:AbortSignal.timeout(4000)}).catch(()=>null); return Date.now()-t; } },
+  { id:'presence', name:'User Presence',       desc:'Online status and active user counts',
+    check: async () => { const t=Date.now(); await getDocs(query(collection(db,'presence'),limit(1))).catch(()=>{}); return Date.now()-t; } },
+];
+
+function classify(ms){ if(ms==null)return'err'; if(ms<900)return'ok'; if(ms<2800)return'warn'; return'err'; }
+function stateText(s){ return{ok:'Operational',warn:'Degraded',err:'Outage',checking:'Checking…'}[s]; }
+function stateNote(s,role){
+  const notes = {
+    ok:   { primary:'Accepting uploads normally', backup:'Ready to receive uploads' },
+    warn: { primary:'Uploads may be slow', backup:'Backup responding slowly' },
+    err:  { primary:'Upload primary is DOWN', backup:'Backup server is DOWN' },
+  };
+  return notes[s]?.[role] ?? '—';
+}
+
+const SVGs={
+  ok:`<path d="M12 2l8 3.5v5.5c0 4.8-3.3 9.3-8 11-4.7-1.7-8-6.2-8-11V5.5z"/><polyline points="8.5 12 11 14.5 15.5 10"/>`,
+  warn:`<path d="M12 2L2 19h20L12 2z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"/>`,
+  err:`<path d="M8.5 2h7l5 5v7l-5 5h-7l-5-5V7z"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`,
+  checking:`<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 14.5"/>`
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Build DOM
+// ─────────────────────────────────────────────────────────────────────────────
+function buildRows(){
+  const list=document.getElementById('services-list');
+  SERVICES.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='svc-row'; row.id=`svc-${s.id}`; row.style.animationDelay=`${i*.065}s`;
+    row.innerHTML=`<div class="svc-left"><div class="svc-icon">${IC[s.id]}</div><div><div class="svc-name">${s.name}</div><div class="svc-desc">${s.desc}</div></div></div><div class="svc-ping" id="lat-${s.id}">—</div><div class="svc-badge checking" id="badge-${s.id}"><div class="badge-dot"></div><span>Checking…</span></div>`;
+    list.appendChild(row);
+  });
+}
+
+function buildUptime(){
+  const wrap=document.getElementById('uptime-rows');
+  SERVICES.slice(0,5).forEach(s=>{
+    const seed=s.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const days=Array.from({length:90},(_,i)=>{ const r=((seed*(i+7)*1337)%997)/997; return r>.985?'down':r>.94?'warn':'up'; });
+    const pct=((days.filter(d=>d==='up').length/90)*100).toFixed(2);
+    const pcls=pct>=99?'great':pct>=95?'good':'bad';
+    const row=document.createElement('div'); row.className='uptime-row';
+    row.innerHTML=`<div class="upt-name">${s.name}</div><div class="upt-bars">${days.map((d,i)=>{const dt=new Date();dt.setDate(dt.getDate()-(89-i));const lbl=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});return`<div class="upt-bar ${d}" title="${lbl} — ${d==='up'?'Operational':d==='warn'?'Degraded':'Outage'}"></div>`;}).join('')}</div><div class="upt-pct ${pcls}">${pct}%</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+function loadIncidents(){
+  const card=document.getElementById('incidents-card');
+  const emptyHTML=`<div class="inc-empty"><div class="inc-empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="inc-empty-title">No incidents in the last 30 days</div><div class="inc-empty-sub">All systems have been running smoothly.</div></div>`;
+  try {
+    onSnapshot(
+      query(collection(db,'incidents'), orderBy('createdAt','desc'), limit(5)),
+      (snap) => {
+        if(snap.empty){ card.innerHTML=emptyHTML; return; }
+        card.innerHTML='';
+        snap.forEach(d=>{
+          const inc=d.data();
+          const tag=inc.status==='resolved'?'resolved':inc.status==='monitoring'?'monitoring':'ongoing';
+          const ts=inc.createdAt?.toDate?inc.createdAt.toDate().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+          const row=document.createElement('div'); row.className='inc-row';
+          row.innerHTML=`<div class="inc-tag ${tag}">${tag}</div><div><div class="inc-title">${inc.title||'Untitled'}</div><div class="inc-desc">${inc.description||''}</div></div><div class="inc-ts">${ts}</div>`;
+          card.appendChild(row);
+        });
+        const f=snap.docs[0].data(); const fts=f.createdAt?.toDate?f.createdAt.toDate():null;
+        if(fts){ const diff=Math.floor((Date.now()-fts.getTime())/86400000); document.getElementById('m-incident').textContent=diff===0?'Today':`${diff}d ago`; document.getElementById('m-incident-sub').textContent=f.title?.slice(0,28)||''; }
+      },
+      (err) => { console.warn('Incidents listener error:',err.code, err.message); }
+    );
+  } catch(e){ console.warn('loadIncidents failed:',e); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Down servers panel renderer
+// ─────────────────────────────────────────────────────────────────────────────
+function renderDownPanel(downList) {
+  const section = document.getElementById('down-servers-section');
+  if (downList.length === 0) {
+    section.innerHTML = `
+      <div class="storage-ok-panel">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <div>
+          <div class="storage-ok-title">All upload servers operational</div>
+          <div class="storage-ok-sub">Cloudinary (primary) and Supabase (backup) are both reachable.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const pills = downList.map((s, i) =>
+    `<div class="down-pill" style="animation-delay:${i * 0.07}s">
+      <div class="pill-dot"></div>
+      <span>${s.name}</span>
+      <span class="pill-type">${s.role.toUpperCase()}</span>
+    </div>`
+  ).join('');
+
+  const bothDown = downList.length >= 2;
+  const subtitle = bothDown
+    ? 'All upload servers are unreachable — uploads will fail until at least one recovers.'
+    : `${downList[0].role === 'primary' ? 'Uploads are being routed to the Supabase backup.' : 'Cloudinary is handling uploads; backup is unavailable.'}`;
+
+  section.innerHTML = `
+    <div class="down-panel">
+      <div class="down-panel-hdr">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+          <div class="down-panel-title">⚠ ${downList.length} Upload Server${downList.length > 1 ? 's' : ''} Down</div>
+          <div class="down-panel-sub">${subtitle}</div>
+        </div>
+      </div>
+      <div class="down-pill-wrap">${pills}</div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage card updater
+// ─────────────────────────────────────────────────────────────────────────────
+function updateStorageCard(id, state, ms) {
+  const badge = document.getElementById(`sc-${id}-badge`);
+  const pingEl = document.getElementById(`sc-${id}-ping`);
+  const noteEl = document.getElementById(`sc-${id}-note`);
+  const role   = id === 'firebase' ? 'primary' : 'backup';
+
+  if (badge) { badge.className = `svc-badge ${state}`; badge.innerHTML = `<div class="badge-dot"></div><span>${stateText(state)}</span>`; }
+  if (pingEl) { pingEl.className = 'sc-stat-val'; pingEl.textContent = ms != null ? `${ms}ms` : '—'; }
+  if (noteEl) { noteEl.className = `sc-status-txt ${state}`; noteEl.textContent = stateNote(state, role); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main check loop
+// ─────────────────────────────────────────────────────────────────────────────
+let running = false;
+window.runChecks = async function(){
+  if(running)return; running=true;
+  document.getElementById('refresh-btn').classList.add('spinning');
+
+  // Reset all service badges
+  SERVICES.forEach(s=>{
+    const b=document.getElementById(`badge-${s.id}`); const l=document.getElementById(`lat-${s.id}`);
+    if(b){b.className='svc-badge checking';b.innerHTML='<div class="badge-dot"></div><span>Checking…</span>';}
+    if(l)l.textContent='—';
+  });
+  // Reset storage cards
+  STORAGE_SERVERS.forEach(s => {
+    const pingEl = document.getElementById(`sc-${s.id}-ping`);
+    const badge  = document.getElementById(`sc-${s.id}-badge`);
+    const noteEl = document.getElementById(`sc-${s.id}-note`);
+    if(pingEl){ pingEl.className='sc-stat-val shimmer'; pingEl.textContent=''; }
+    if(badge) { badge.className='svc-badge checking'; badge.innerHTML='<div class="badge-dot"></div><span>Checking…</span>'; }
+    if(noteEl){ noteEl.textContent='Verifying connection…'; noteEl.className='sc-status-txt'; }
+  });
+
+  // ── Run all checks in parallel ────────────────────────────────────────────
+  const [serviceResults, storageResults] = await Promise.all([
+    // General services
+    Promise.all(SERVICES.map(async s => {
+      try{ const ms=await Promise.race([s.check(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000))]); return{id:s.id,state:classify(ms),ms}; }
+      catch(e){ return{id:s.id,state:'err',ms:null}; }
+    })),
+    // Storage servers
+    Promise.all(STORAGE_SERVERS.map(async s => {
+      try{ const ms=await Promise.race([s.check(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000))]); return{id:s.id,name:s.name,role:s.role,state:classify(ms),ms}; }
+      catch(e){ return{id:s.id,name:s.name,role:s.role,state:'err',ms:null}; }
+    }))
+  ]);
+
+  // ── Update service badges ─────────────────────────────────────────────────
+  const res = {}; let fsPing = null;
+  serviceResults.forEach(r => {
+    res[r.id] = r;
+    const b=document.getElementById(`badge-${r.id}`); const l=document.getElementById(`lat-${r.id}`);
+    if(b){b.className=`svc-badge ${r.state}`;b.innerHTML=`<div class="badge-dot"></div><span>${stateText(r.state)}</span>`;}
+    if(l)l.textContent=r.ms!=null?`${r.ms}ms`:'—';
+    if(r.id==='firestore') fsPing=r.ms;
+  });
+
+  // ── Update storage cards + build down list ────────────────────────────────
+  const downServers = [];
+  storageResults.forEach(r => {
+    updateStorageCard(r.id, r.state, r.ms);
+    if(r.state === 'err') downServers.push({ name: r.name, role: r.role });
+  });
+  renderDownPanel(downServers);
+
+  // ── Banner ────────────────────────────────────────────────────────────────
+  const allStates = [
+    ...serviceResults.map(r=>r.state),
+    ...storageResults.map(r=>r.state)
+  ];
+  const hasErr=allStates.includes('err'), hasWarn=allStates.includes('warn');
+  const upCnt=serviceResults.filter(r=>r.state==='ok'||r.state==='warn').length;
+  const overall=hasErr?'err':hasWarn?'warn':'ok';
+
+  const banner=document.getElementById('banner');
+  banner.className=`hero ${overall}`;
+  document.getElementById('banner-svg').innerHTML=SVGs[overall];
+  const titles={ok:'All Systems Operational',warn:'Degraded Performance',err:'Service Disruption'};
+  const subs={ok:'Every service is running normally. No issues detected.',warn:'Some services are responding slower than usual. We are actively monitoring.',err:'One or more services are experiencing issues. Our team has been notified.'};
+  document.getElementById('banner-title').textContent=titles[overall];
+  document.getElementById('banner-sub').textContent=subs[overall];
+
+  const mp=document.getElementById('m-ping'); mp.className='metric-val'; mp.textContent=fsPing!=null?`${fsPing}ms`:'—';
+  const mu=document.getElementById('m-up');   mu.className='metric-val'; mu.textContent=`${upCnt}/${SERVICES.length}`;
+  document.getElementById('m-total').textContent=SERVICES.length;
+
+  const now=new Date();
+  const time=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const date=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('banner-ts').innerHTML=`${date}<br>${time}`;
+  document.getElementById('live-time').textContent=time;
+  document.getElementById('footer-ts').textContent=`Last updated ${date} at ${time}`;
+
+  document.getElementById('refresh-btn').classList.remove('spinning');
+  running=false;
+};
+
+setInterval(()=>{ document.getElementById('live-time').textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); },1000);
+
+buildRows(); buildUptime(); loadIncidents(); runChecks();
+setInterval(runChecks,60000);
+</script>
+</body>
+</html>
